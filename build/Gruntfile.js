@@ -25,7 +25,7 @@ module.exports = function(grunt) {
 		mkdir: {
 			all: {
 				options: {
-					create: ['target', 'tmp']
+					create: ['target', 'target/js', 'target/css', 'target/images', 'tmp']
 				}
 			}
 		},
@@ -50,6 +50,8 @@ module.exports = function(grunt) {
 					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/html/index.html', dest: '<%= globalConfig.target %>/', filter: 'isFile' },
 					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/html/dashboard.html', dest: '<%= globalConfig.target %>/', filter: 'isFile' },
 					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/html/about.html', dest: '<%= globalConfig.target %>/', filter: 'isFile' },
+					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/css/github.css', dest: '<%= globalConfig.target %>/css', filter: 'isFile' },
+					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/images/*.png', dest: '<%= globalConfig.target %>/images', filter: 'isFile' },
 				]
 			}
 		},
@@ -64,8 +66,22 @@ module.exports = function(grunt) {
 				}
 			}
 		},
+		cssmin: {
+			options: {
+				shorthandCompacting: false,
+				roundingPrecision: -1
+			},
+			target: {
+				files: {
+					'<%= globalConfig.target %>/css/build.css': [
+						'<%= globalConfig.bower_path %>/jquery-ui/themes/smoothness/jquery-ui.min.css',
+						'<%= globalConfig.src %>/css/core.css'
+					]
+				}
+			}
+		},
 		concat: {
-			js: {
+			dist: {
 				src: [
 					'<%= globalConfig.bower_path %>/jquery/dist/jquery.min.js',
 					'<%= globalConfig.bower_path %>/jquery-ui/jquery-ui.min.js',
@@ -74,14 +90,7 @@ module.exports = function(grunt) {
 					'<%= globalConfig.bower_path %>/typeahead.js/dist/typeahead.bundle.min.js',
 					'<%= globalConfig.tmp %>/core.min.js'
 				],
-				dest: '<%= globalConfig.target %>/build.js'
-			},
-			css: {
-				src: [
-					'<%= globalConfig.bower_path %>/jquery-ui/themes/smoothness/jquery-ui.min.css',
-					'<%= globalConfig.src %>/css/core.css'
-				],
-				dest: '<%= globalConfig.target %>/build.css'
+				dest: '<%= globalConfig.target %>/js/build.js'
 			}
 		},
 		connect: {
@@ -103,7 +112,7 @@ module.exports = function(grunt) {
 	require('load-grunt-tasks')(grunt);
 
   // Default task.
-  grunt.registerTask('default', ['copy', 'uglify', 'concat:js', 'concat:css']);
+  grunt.registerTask('default', ['copy', 'uglify', 'concat', 'cssmin']);
 	grunt.registerTask('server', function (target) {
 		if (target === '/') {
 			return grunt.task.run(['default', 'connect:development:keepalive']);
