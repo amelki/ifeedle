@@ -105,6 +105,27 @@ module.exports = function(grunt) {
 					base: [''] // '.tmp',
 				}
 			}
+		},
+		aws_s3: {
+			release: {
+				options: {
+					accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+					secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+					bucket: 'ifeedle.com',
+					region: 'us-east-1',
+					sslEnabled: false
+				},
+				files: [
+					{
+						expand: true,
+						dest: '.',
+						cwd: '<%= globalConfig.target %>/',
+						src: ['**'],
+						action: 'upload',
+						differential: true
+					}
+				]
+			}
 		}
 	});
 
@@ -112,7 +133,9 @@ module.exports = function(grunt) {
 	require('load-grunt-tasks')(grunt);
 
   // Default task.
-  grunt.registerTask('default', ['copy', 'uglify', 'concat', 'cssmin']);
+  grunt.registerTask('build', ['copy', 'uglify', 'concat', 'cssmin']);
+  grunt.registerTask('default', ['build']);
+  grunt.registerTask('deploy', ['aws_s3']);
 	grunt.registerTask('server', function (target) {
 		if (target === '/') {
 			return grunt.task.run(['default', 'connect:development:keepalive']);
