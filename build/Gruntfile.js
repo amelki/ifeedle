@@ -47,9 +47,9 @@ module.exports = function(grunt) {
 		copy: {
 			main: {
 				files: [
-					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/html/index.html', dest: '<%= globalConfig.target %>/', filter: 'isFile' },
-					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/html/dashboard.html', dest: '<%= globalConfig.target %>/', filter: 'isFile' },
-					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/html/about.html', dest: '<%= globalConfig.target %>/', filter: 'isFile' },
+					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/*.html', dest: '<%= globalConfig.target %>/', filter: 'isFile' },
+					// Overwrite include.html with its distrib version (minified and merged js and css)
+					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/distrib/include.html', dest: '<%= globalConfig.target %>/', filter: 'isFile' },
 					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/css/github.css', dest: '<%= globalConfig.target %>/css', filter: 'isFile' },
 					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/images/*.png', dest: '<%= globalConfig.target %>/images', filter: 'isFile' },
 				]

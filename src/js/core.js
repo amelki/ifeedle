@@ -1,3 +1,6 @@
+if (console && console.log) {
+	console.log("IFeedle - version 1.0");
+}
 var JSON = JSON || {};
 // implement JSON.stringify serialization
 JSON.stringify = JSON.stringify || function (obj) {
@@ -45,7 +48,6 @@ function initColumns() {
 
 	$(".column").disableSelection();
 }
-google.load("feeds", "1");
 var widgetCounter = 0;
 
 function makePortlet(url, col, start, content) {

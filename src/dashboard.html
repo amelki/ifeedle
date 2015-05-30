@@ -1,11 +1,11 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
-    <title>IFeedle from S3</title>
-    <link rel="stylesheet" href="css/build.css"/>
-    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
-    <script type="text/javascript" src="js/build.js"></script>
-    <script type="text/javascript" >
+    <title>IFeedle</title>
+	<link rel="import" href="include.html" />
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript">
+		google.load("feeds", "1");
         $(function () {
             var feedsParam = getURLParameter("feeds");
             if (feedsParam) {
