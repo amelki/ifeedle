@@ -26,5 +26,8 @@
     "jquery": "~2.1.4",
     "jquery.xml2json": "~1.3.0",
     "jquery-ui": "~1.11.4"
+  },
+  "devDependencies": {
+    "lz-string": "~1.4.4"
   }
 }

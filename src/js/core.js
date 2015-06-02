@@ -141,7 +141,7 @@ function loadFeed(result, url, col, start) {
 			if (typeof imgUrl != "string") {
 				console.log("no URL found");
 			}
-			content.append($("<tr><td class='image'>" + (imgUrl ? ("<img width='80px' src='" + imgUrl + "'></img>") : "") + "</td><td><a target=\"_blank\" href=\"" + jsonEntry.link + "\">" + jsonEntry.title + "</a><br>" + jsonEntry.contentSnippet + "</td></tr>"));
+			content.append($("<tr><td class='image'>" + (imgUrl ? ("<img width='80px' src='" + imgUrl + "'></img>") : "") + "</td><td><a class=\"feed-link\" target=\"_blank\" href=\"" + jsonEntry.link + "\">" + jsonEntry.title + "</a><br>" + jsonEntry.contentSnippet + "</td></tr>"));
 		}
 	} else {
 		if (url.substring(url.length - 3) != "rss") {
@@ -158,8 +158,7 @@ function loadFeed(result, url, col, start) {
 	} else {
 		portletHeader.find(".title").text("Error");
 	}
-
-};
+}
 
 function setFeed(url, col, start) {
 	if (url == 'https://mail.google.com') {
@@ -167,10 +166,8 @@ function setFeed(url, col, start) {
 		portlet.find(".portlet-header").find(".title").text("GMail");
 		var signinUrl = "http://localhost:8081/oauth2/google/auth?clientRedirectURI=" + encodeURIComponent(window.location.href);
 		portlet.find(".portlet-content").html("<a href='" + signinUrl + "'>Sign in</a>");
-
 //        window.location = "http://localhost:8081/oauth2/google/auth?clientRedirectURI=" + encodeURIComponent(window.location.href);
-
-//        url = "http://localhost:8081/gmail?userName=amelki156&password=Bxocely,";
+//        url = "http://localhost:8081/gmail?userName=amelki156&password=XXXXX";
 //        $.get(url, function(feedStr) {
 //            alert(feedStr);
 //            var parsed = new DOMParser().parseFromString(feedStr, "text/xml");
@@ -179,6 +176,10 @@ function setFeed(url, col, start) {
 //            result.entries = [];
 //            loadFeed(result, url, col, start);
 //        });
+	} else if (url == 'ifeedle://welcome') {
+		var content = $("<p>IFeedle, dead simple dashboards for your feeds</p>");
+		var portlet = makePortlet(url, col, start, content);
+		portlet.find(".portlet-header").find(".title").text("Welcome to IFeedle!");
 	} else {
 		if (url.substring(0, 4) != "http") {
 			url = "http://" + url;
@@ -193,6 +194,22 @@ function setFeed(url, col, start) {
 function getURLParameter(name) {
 	return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search) || [, ""])[1].replace(/\+/g, '%20')) || null;
 }
+
+function onPageLoad() {
+	var feedsParam = getURLParameter("feeds");
+	var version = getURLParameter("v") || 1;
+	if (feedsParam) {
+		if (version > 1) {
+			feedsParam = LZString.decompressFromEncodedURIComponent(feedsParam);
+		}
+		feeds = $.parseJSON(feedsParam);
+	} else {
+		initDefault();
+	}
+	initDashboard();
+}
+
+
 function addFeed(urls) {
 	var urls = urls.split(" ");
 	for (var i = 0; i < urls.length; i++) {
@@ -200,6 +217,9 @@ function addFeed(urls) {
 		setFeed(url, 0, true);
 		feeds[0].splice(0, 0, url);
 	}
+	$(".feed-link").on("click", function(e) {
+		ga('send', 'event', 'feed-link', $(e.target).attr("href"), 'user-action');
+	});
 	setUrl();
 	$("#feedUrl").typeahead("val", "");
 	$("#feedUrl").focus();
@@ -213,7 +233,7 @@ function initDefault() {
 //        [ "http://www.mediapart.fr/articles/feed", "http://feedproxy.google.com/TechCrunch" ],
 //    ];
 	feeds = [
-		["mashable.com", "http://feeds.bbci.co.uk/news/world/rss.xml"],
+		["ifeedle://welcome", "mashable.com", "http://feeds.bbci.co.uk/news/world/rss.xml"],
 		["http://feeds.feedburner.com/cnet/NnTv", "http://rss.news.yahoo.com/rss/mostemailed"],
 		["http://rss.cnn.com/rss/edition.rss", "http://feedproxy.google.com/TechCrunch"]
 	];
@@ -221,7 +241,9 @@ function initDefault() {
 }
 
 function setUrl() {
-	window.history.pushState("state", "title", window.location.pathname + "?feeds=" + encodeURIComponent(JSON.stringify(feeds)));
+	var json = JSON.stringify(feeds);
+	var compressed = LZString.compressToEncodedURIComponent(json);
+	window.history.pushState("state", "title", window.location.pathname + "?v=2&feeds=" + compressed);
 }
 
 function makeUrl(feeds) {
@@ -241,25 +263,6 @@ function widgetMoved() {
 }
 
 function initDashboard() {
-/*
-	$("#feedUrl").autocomplete({
-		source : function(request, response) {
-			var term = request.term;
-			google.feeds.findFeeds(term, function(result) {
-				if (!result.error) {
-					var data = [];
-					for (var i = 0; i < result.entries.length; i++) {
-						data[data.length] = {
-							label: result.entries[i].title,
-							value: result.entries[i].url
-						};
-					}
-					response(data);
-				}
-			});
-		}
-	});
-*/
 	$("#feedUrl").typeahead({
 		minLength: 3,
 		hint: false,
@@ -288,20 +291,6 @@ function initDashboard() {
 					asyncResults(data);
 				}
 			});
-
-/*
-			google.feeds.findFeeds(query, function(result) {
-				if (!result.error) {
-					var data = [];
-					for (var i = 0; i < result.entries.length; i++) {
-						 //if (result.entries[i].url) {
-							 data[data.length] = result.entries[i];
-						 //}
-					}
-					asyncResults(data);
-				}
-			});
-*/
 		},
 		limit: 10,
 		templates : {
@@ -314,25 +303,30 @@ function initDashboard() {
 		columnsCount = 3;
 	}
 	$(".columns").empty();
-	for (var c = 0; c < columnsCount; c++) {
+	var c;
+	for (c = 0; c < columnsCount; c++) {
 		$(".columns").append($("<div class='column'></div>"));
 	}
-	for (var c in feeds) {
+	for (c in feeds) {
 		var columnFeeds = feeds[c];
 		for (var f in columnFeeds) {
 			var feedStr = columnFeeds[f];
 			setFeed(feedStr, c);
 		}
 	}
+	$(".feed-link").on("click", function(e) {
+		ga('send', 'event', 'feed-link', $(e.target).attr("href"), 'user-action');
+	});
 	initColumns();
 	$("#addFeed").on("click", function (e) {
 		ga('send', 'event', 'add-feed', $("#feedUrl").val(), 'user-action');
 		addFeed($("#feedUrl").val());
 	});
 	$("#feedUrl").on("keypress", function (e) {
-		ga('send', 'event', 'add-feed', $("#feedUrl").val(), 'user-action');
+		ga('send', 'event', 'search-feed', $("#feedUrl").val(), 'user-action');
 		var keycode = (e.keyCode ? e.keyCode : e.which);
 		if (keycode == '13') {
+			ga('send', 'event', 'add-feed', $("#feedUrl").val(), 'user-action');
 			addFeed($("#feedUrl").val());
 			e.preventDefault();
 			e.stopImmediatePropagation();

@@ -88,6 +88,7 @@ module.exports = function(grunt) {
 					'<%= globalConfig.bower_path %>/handlebars/handlebars.min.js',
 					'<%= globalConfig.tmp %>/jquery.xml2json.min.js',
 					'<%= globalConfig.bower_path %>/typeahead.js/dist/typeahead.bundle.min.js',
+					'<%= globalConfig.bower_path %>/lz-string/libs/lz-string.min.js',
 					'<%= globalConfig.tmp %>/core.min.js'
 				],
 				dest: '<%= globalConfig.target %>/js/build.js'

@@ -6,15 +6,7 @@
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
 	<script type="text/javascript">
 		google.load("feeds", "1");
-		$(function () {
-			var feedsParam = getURLParameter("feeds");
-			if (feedsParam) {
-				feeds = $.parseJSON(feedsParam);
-			} else {
-				initDefault();
-			}
-			initDashboard();
-		});
+		$(function () { onPageLoad(); });
 	</script>
 	<script>
 		(function (i, s, o, g, r, a, m) {
