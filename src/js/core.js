@@ -191,8 +191,13 @@ function setFeed(url, col, start) {
 		});
 	}
 }
+jQuery.extend({
+	getQueryParameters : function(str) {
+		return (str || document.location.search).replace(/(^\?)/,'').split("&").map(function(n){return n = n.split("="),this[n[0]] = n[1],this}.bind({}))[0];
+	}
+});
 function getURLParameter(name) {
-	return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search) || [, ""])[1].replace(/\+/g, '%20')) || null;
+	return $.getQueryParameters()[name];
 }
 
 function onPageLoad() {
@@ -233,7 +238,8 @@ function initDefault() {
 //        [ "http://www.mediapart.fr/articles/feed", "http://feedproxy.google.com/TechCrunch" ],
 //    ];
 	feeds = [
-		["ifeedle://welcome", "mashable.com", "http://feeds.bbci.co.uk/news/world/rss.xml"],
+//		["ifeedle://welcome", "mashable.com", "http://feeds.bbci.co.uk/news/world/rss.xml"],
+		["mashable.com", "http://feeds.bbci.co.uk/news/world/rss.xml"],
 		["http://feeds.feedburner.com/cnet/NnTv", "http://rss.news.yahoo.com/rss/mostemailed"],
 		["http://rss.cnn.com/rss/edition.rss", "http://feedproxy.google.com/TechCrunch"]
 	];

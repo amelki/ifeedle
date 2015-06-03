@@ -270,3 +270,8 @@ body {
   margin-left: 15px;
 }
 
+::-webkit-input-placeholder {
+  color: #a7a7a7;
+  font-size: 14px;
+  font-weight: 600;
+}
