@@ -1,3 +1,11 @@
+String.prototype.trunc =
+		function( n, useWordBoundary ){
+			var isTooLong = this.length > n,
+					s_ = isTooLong ? this.substr(0,n-1) : this;
+			s_ = (useWordBoundary && isTooLong) ? s_.substr(0,s_.lastIndexOf(' ')) : s_;
+			return  isTooLong ? s_ + '&hellip;' : s_;
+		};
+
 if (console && console.log) {
 	console.log("IFeedle - version 1.0");
 }
@@ -50,20 +58,18 @@ function initColumns() {
 }
 var widgetCounter = 0;
 
-function makePortlet(url, col, start, content) {
-	var portlet = $("<div class='portlet'></div>");
+function makePortlet(url, col, row, highlight, content) {
+	var portlet = highlight ? $("<div class='portlet'></div>") : $($($(".column")[col]).find(".portlet")[row]);
 	portlet.data("url", url);
 	var portletHeader = $("<div class='portlet-header'><div class='title'></div><div class='close' title='Remove this feed'>&#215;</div></div>");
-	var portletContent = $("<div class='portlet-content" + (start ? " highlight" : "") + "'></div>");
+	var portletContent = $("<div class='portlet-content" + (highlight ? " highlight" : "") + "'></div>");
 	portletContent.append(content);
 	portlet.append(portletHeader);
 	portlet.append(portletContent);
-	if (start) {
+	if (highlight) {
 		$($(".column")[col]).hide().prepend(portlet).fadeIn('slow', function () {
 			portletContent.removeClass("highlight", 2000);
 		});
-	} else {
-		$($(".column")[col]).append(portlet);
 	}
 	portlet.find(".close").on("click", function (e) {
 		var idx = portlet.index();
@@ -84,7 +90,7 @@ function makePortlet(url, col, start, content) {
  * @param xmlEntry
  * @returns {*}
  */
-function getThumbnailUrl(jsonEntry, xmlEntry) {
+function extractThumbnailUrlFromFeed(jsonEntry, xmlEntry) {
 	if (jsonEntry.mediaGroups && jsonEntry.mediaGroups.length > 0) {
 		for (var m = 0; m < jsonEntry.mediaGroups.length; m++) {
 			var mediaGroup = jsonEntry.mediaGroups[m];
@@ -129,40 +135,100 @@ function getThumbnailUrl(jsonEntry, xmlEntry) {
 	return null;
 }
 
-function loadFeed(result, url, col, start) {
+/**
+ * Load the page and get some json elements from it, using the Yahoo jql API.
+ * Try to look for the thumbnail among og:image, apple-touch-icon link, etc.
+ *
+ * @param pageUrl the URL of the feed item to scrap.
+ * @param success a success function function(thumbnailUrl). Called only if a thumbnail is actually found.
+ */
+function extractThumbnailUrlFromPage(pageUrl, success) {
+	$.ajax({
+		dataType: "json",
+		url: "//query.yahooapis.com/v1/public/yql?"
+		+ "q=SELECT%20*%20FROM%20html%20WHERE%20url=%27"
+		+ encodeURIComponent(pageUrl)
+		+ "%27%20AND%20xpath=%27descendant-or-self::meta|descendant-or-self::link%27"
+		+ "&format=json&callback=?",
+		success: function(data) {
+			if (data && data.query && data.query.results) {
+				var metas = data.query.results.meta;
+				var links = data.query.results.link;
+				var res, resUrl;
+				res = $.grep(metas, function (meta, key) {
+					return meta.hasOwnProperty("property") && meta.property === "og:image"
+				});
+				if(res && res.length > 0) {
+					resUrl = res[0].content;
+				} else {
+					res = $.grep(links, function (link, key) {
+						return link.hasOwnProperty("rel") && link.rel === "apple-touch-icon"
+					});
+					if(res && res.length > 0) {
+						resUrl = res[0].href;
+					}
+				}
+				if (resUrl) {
+					success(resUrl);
+				}
+			}
+		}
+	});
+}
+
+function setThumbnailUrl(img, thumbnailUrl) {
+	img.bind("load", function() {
+		img.closest(".imgLiquid").imgLiquid();
+	});
+	img.attr("src", thumbnailUrl);
+}
+
+function loadFeed(result, url, col, row, highlight) {
 //        if (!result.error) {
 	var content = $("<table class='feed'></table>");
-	var json = $.xml2json(result.xmlDocument);
 	if (!result.error) {
-		for (var i = 0; i < result.feed.entries.length; i++) {
-			var jsonEntry = result.feed.entries[i];
-			var xmlEntry = json.channel.item[i];
-			var imgUrl = getThumbnailUrl(jsonEntry, xmlEntry);
-			if (typeof imgUrl != "string") {
-				console.log("no URL found");
+		for (var i = 0; i < result.items.length; i++) {
+			var item = result.items[i];
+			var link = (item.alternate && item.alternate.length > 0) ? item.alternate[0].href : null;
+			var title = item.title;
+			var summary = item.summary.content;
+			summary = (new DOMParser).parseFromString(summary, "text/html").documentElement.textContent;
+			summary = summary.trunc(200, true);
+			var line = $("<tr><td><a target='_blank' href='"+link+"' class='image imgLiquid'><img/></a></td><td><a class=\"feed-link\" target=\"_blank\" href=\"" + link + "\">" + title + "</a><br>" + summary + "</td></tr>")
+			content.append(line);
+			var thumbnailUrl = item.visual ? item.visual.url : null;
+			if (thumbnailUrl == null) {
+				(function(capturedLine) {
+					extractThumbnailUrlFromPage(link, function (resUrl) {
+						var img = capturedLine.find(".image img");
+						setThumbnailUrl(img, resUrl);
+					});
+				})(line);
+			} else {
+				setThumbnailUrl(line.find(".image img"), thumbnailUrl);
 			}
-			content.append($("<tr><td class='image'>" + (imgUrl ? ("<img width='80px' src='" + imgUrl + "'></img>") : "") + "</td><td><a class=\"feed-link\" target=\"_blank\" href=\"" + jsonEntry.link + "\">" + jsonEntry.title + "</a><br>" + jsonEntry.contentSnippet + "</td></tr>"));
 		}
 	} else {
 		if (url.substring(url.length - 3) != "rss") {
-			setFeed((url.substring(url.length - 1) == "/") ? (url + "rss") : (url + "/rss"), col, start);
+			setFeed((url.substring(url.length - 1) == "/") ? (url + "rss") : (url + "/rss"), col, row, highlight);
 			return;
 		} else {
 			content.append($("<div class='error'>Error while loading URL: '" + url + "'</div>"));
 		}
 	}
-	var portlet = makePortlet(url, col, start, content);
+	var portlet = makePortlet(url, col, row, highlight, content);
 	var portletHeader = portlet.find(".portlet-header");
 	if (!result.error) {
-		portletHeader.find(".title").html("<a target='_blank' href='" + result.feed.link + "'>" + result.feed.title + "</a>");
+		var feedLink = (result.alternate && result.alternate.length > 0) ? result.alternate[0].href : "";
+		portletHeader.find(".title").html("<a target='_blank' href='" + feedLink + "'>" + result.title + "</a>");
 	} else {
 		portletHeader.find(".title").text("Error");
 	}
 }
 
-function setFeed(url, col, start) {
+function setFeed(url, col, row, highlight) {
 	if (url == 'https://mail.google.com') {
-		var portlet = makePortlet(url, col, start);
+		var portlet = makePortlet(url, col, row, highlight);
 		portlet.find(".portlet-header").find(".title").text("GMail");
 		var signinUrl = "http://localhost:8081/oauth2/google/auth?clientRedirectURI=" + encodeURIComponent(window.location.href);
 		portlet.find(".portlet-content").html("<a href='" + signinUrl + "'>Sign in</a>");
@@ -178,19 +244,43 @@ function setFeed(url, col, start) {
 //        });
 	} else if (url == 'ifeedle://welcome') {
 		var content = $("<p>IFeedle, dead simple dashboards for your feeds</p>");
-		var portlet = makePortlet(url, col, start, content);
+		var portlet = makePortlet(url, col, row, highlight, content);
 		portlet.find(".portlet-header").find(".title").text("Welcome to IFeedle!");
 	} else {
 		if (url.substring(0, 4) != "http") {
 			url = "http://" + url;
 		}
-		var feed = new google.feeds.Feed(url);
-		feed.setResultFormat(google.feeds.Feed.MIXED_FORMAT);
-		feed.load(function (result) {
-			loadFeed(result, url, col, start);
-		});
+		var streamId = "feed/" + url;
+		var feedlyUrl = "http://cloud.feedly.com/v3/streams/contents?count=3&streamId="+encodeURIComponent(streamId);
+		tryGetThroughProxy(feedlyUrl, function(res){
+			loadFeed(res, url, col, row, highlight);
+		}, function(error) {
+			var result = { error: true };
+			loadFeed(result, url, col, row, highlight);
+		}, 3);
 	}
 }
+
+function tryGetThroughProxy(url, success, error, maxAttempts) {
+	$.ajax({
+		// use a proxy to avoid CORS issues while calling the feedly API
+		url: "https://jsonp.afeld.me/",
+		async: true,
+		data: {
+			url: url
+		},
+		success: success,
+		error: function(err) {
+			if (maxAttempts > 0) {
+				console.log("Retrying call through proxy: " + url);
+				tryGetThroughProxy(url, success, error, maxAttempts - 1);
+			} else {
+				error(err);
+			}
+		}
+	});
+}
+
 jQuery.extend({
 	getQueryParameters : function(str) {
 		return (str || document.location.search).replace(/(^\?)/,'').split("&").map(function(n){return n = n.split("="),this[n[0]] = n[1],this}.bind({}))[0];
@@ -216,10 +306,10 @@ function onPageLoad() {
 
 
 function addFeed(urls) {
-	var urls = urls.split(" ");
+	urls = urls.split(" ");
 	for (var i = 0; i < urls.length; i++) {
 		var url = urls[i].trim();
-		setFeed(url, 0, true);
+		setFeed(url, 0, 0, true);
 		feeds[0].splice(0, 0, url);
 	}
 	$(".feed-link").on("click", function(e) {
@@ -268,7 +358,68 @@ function widgetMoved() {
 	setUrl();
 }
 
+function signinCallback(authResult) {
+	if (authResult['status']['signed_in']) {
+		gapi.client.load('plus','v1', function(){
+			var request = gapi.client.plus.people.get({
+				'userId': 'me'
+			});
+			request.execute(function(resp) {
+				if (!resp.error) {
+					$('#profile').text(resp.displayName);
+					$('#profile').show();
+					console.log('Retrieved profile for:' + resp.displayName);
+				} else {
+					console.log(resp.error.message);
+				}
+			});
+/*
+			gapi.client.plus.people.get({ 'userId': 'me' }).execute(function(resp) {
+				console.log('Retrieved profile for:' + resp.displayName);
+			});
+*/
+		});
+		// Update the app to reflect a signed in user
+		// Hide the sign-in button now that the user is authorized, for example:
+		$('#signin').hide();
+		$('#signout').show();
+		// Add the Google access token to the Cognito credentials login map.
+		AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+			IdentityPoolId: 'us-east-1:44d16b88-677e-464d-abdd-eeac08a5c755',
+			Logins: {
+				'accounts.google.com': authResult['id_token']
+			}
+		});
+		// Obtain AWS credentials
+		AWS.config.credentials.get(function(){
+			syncManager = new AWS.CognitoSyncManager();
+		});
+	} else {
+		$('#signin').show();
+		$('#signout').hide();
+		$('#profile').text("");
+		// Update the app to reflect a signed out user
+		// Possible error values:
+		//   "user_signed_out" - User is signed-out
+		//   "access_denied" - User denied access to your app
+		//   "immediate_failed" - Could not automatically log in the user
+		console.log('Sign-in state: ' + authResult['error']);
+	}
+}
+
 function initDashboard() {
+//// set the default config object
+//	var creds = new AWS.CognitoIdentityCredentials({
+//		IdentityPoolId: 'us-east-1:44d16b88-677e-464d-abdd-eeac08a5c755'
+//	});
+//	AWS.config.credentials = creds;
+	$("#signin").on('click', function() {
+		gapi.auth.signIn();
+	});
+	$("#signout").on('click', function() {
+		gapi.auth.signOut();
+	});
+
 	$("#feedUrl").typeahead({
 		minLength: 3,
 		hint: false,
@@ -278,25 +429,19 @@ function initDashboard() {
 		display: "url",
 		source : function(query, syncResults, asyncResults) {
 			// Use the feedly API instead of the Google one to find feeds, because results are much better and richer
-			$.ajax({
-				// use a proxy to avoid CORS issues while calling the feedly API
-				url: "https://jsonp.afeld.me/",
-				async: true,
-				data: {
-					url: "http://cloud.feedly.com/v3/search/feeds?query="+encodeURIComponent(query)
-				},
-				success: function(res){
-					var data = [];
-					for (var i = 0; i < res.results.length; i++) {
-						data[data.length] = {
-							title: res.results[i].title,
-							url: res.results[i].feedId.substring("feed/".length),
-							iconUrl: res.results[i].iconUrl
-						}
+			tryGetThroughProxy("http://cloud.feedly.com/v3/search/feeds?query="+encodeURIComponent(query), function(res){
+				var data = [];
+				for (var i = 0; i < res.results.length; i++) {
+					data[data.length] = {
+						title: res.results[i].title,
+						url: res.results[i].feedId.substring("feed/".length),
+						iconUrl: res.results[i].iconUrl
 					}
-					asyncResults(data);
 				}
-			});
+				asyncResults(data);
+			}, function(error) {
+				// Do nothing
+			}, 3);
 		},
 		limit: 10,
 		templates : {
@@ -309,15 +454,22 @@ function initDashboard() {
 		columnsCount = 3;
 	}
 	$(".columns").empty();
-	var c;
+	var c, f, columnFeeds;
+	// create empty portlets
 	for (c = 0; c < columnsCount; c++) {
-		$(".columns").append($("<div class='column'></div>"));
+		var column = $("<div class='column'></div>");
+		$(".columns").append(column);
+		columnFeeds = feeds[c];
+		for (f in columnFeeds) {
+			column.append($("<div class='portlet'></div>"));
+		}
 	}
-	for (c in feeds) {
-		var columnFeeds = feeds[c];
-		for (var f in columnFeeds) {
+	// fill portlets with feeds (asynchronous)
+	for (c = 0; c < columnsCount; c++) {
+		columnFeeds = feeds[c];
+		for (f in columnFeeds) {
 			var feedStr = columnFeeds[f];
-			setFeed(feedStr, c);
+			setFeed(feedStr, c, f);
 		}
 	}
 	$(".feed-link").on("click", function(e) {

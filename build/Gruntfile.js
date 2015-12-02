@@ -52,6 +52,8 @@ module.exports = function(grunt) {
 					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/distrib/include.html', dest: '<%= globalConfig.target %>/', filter: 'isFile' },
 					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/css/github.css', dest: '<%= globalConfig.target %>/css', filter: 'isFile' },
 					{ expand: true, flatten: true, src: '<%= globalConfig.src %>/images/*.png', dest: '<%= globalConfig.target %>/images', filter: 'isFile' },
+					{ expand: true, flatten: true, src: '<%= globalConfig.bower_path %>/jquery-ui/themes/smoothness/images/*.png', dest: '<%= globalConfig.target %>/images', filter: 'isFile' },
+					{ expand: true, flatten: true, src: '<%= globalConfig.bower_path %>/jquery-ui/themes/smoothness/images/*.gif', dest: '<%= globalConfig.target %>/images', filter: 'isFile' },
 				]
 			}
 		},
@@ -74,7 +76,7 @@ module.exports = function(grunt) {
 			target: {
 				files: {
 					'<%= globalConfig.target %>/css/build.css': [
-						'<%= globalConfig.bower_path %>/jquery-ui/themes/smoothness/jquery-ui.min.css',
+//						'<%= globalConfig.bower_path %>/jquery-ui/themes/smoothness/jquery-ui.min.css',
 						'<%= globalConfig.src %>/css/core.css'
 					]
 				}
@@ -88,7 +90,10 @@ module.exports = function(grunt) {
 					'<%= globalConfig.bower_path %>/handlebars/handlebars.min.js',
 					'<%= globalConfig.tmp %>/jquery.xml2json.min.js',
 					'<%= globalConfig.bower_path %>/typeahead.js/dist/typeahead.bundle.min.js',
+					'<%= globalConfig.bower_path %>/imgLiquid/js/imgLiquid-min.js',
 					'<%= globalConfig.bower_path %>/lz-string/libs/lz-string.min.js',
+					'<%= globalConfig.bower_path %>/aws-sdk-js/dist/aws-sdk.min.js',
+					'<%= globalConfig.bower_path %>/amazon-cognito-js/dist/amazon-cognito.min.js',
 					'<%= globalConfig.tmp %>/core.min.js'
 				],
 				dest: '<%= globalConfig.target %>/js/build.js'

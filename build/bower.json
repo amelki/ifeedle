@@ -28,6 +28,7 @@
     "jquery-ui": "~1.11.4"
   },
   "devDependencies": {
-    "lz-string": "~1.4.4"
+    "lz-string": "~1.4.4",
+    "imgLiquid": "~0.9.944"
   }
 }

@@ -75,8 +75,21 @@ a, a:visited {
   vertical-align: top;
 }
 
-.feed td.image img {
+/*
+Important:
+    set "visibility:hidden" for better results or use src/css/imgLiquid.js.css
+*/
+.imgLiquid {
+  display: block;
+  width: 80px;
+  height: 60px;
+  margin-left: 5px;
   margin-right: 5px;
+  margin-top: 2px;
+}
+
+.imgLiquid img {
+  visibility:hidden;
 }
 
 .sDashboard-circle-plus-icon {
@@ -259,10 +272,17 @@ body {
   top: 5px;
 }
 
-#siteLink {
+ul.right-bar {
   float: right;
   margin-top: 10px;
-  margin-right: 32px;
+  margin-right: 52px;
+  list-style: none;
+}
+ul.right-bar li {
+  float: left;
+  padding-left: 10px;
+}
+.right-bar a, .right-bar span {
 }
 
 .columns {
